@@ -1,7 +1,9 @@
 from rest_framework import serializers
+from django.db import IntegrityError
+from django.contrib.auth import get_user_model
 
-from Users.models import User
 
+User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -10,4 +12,12 @@ class UserSerializer(serializers.ModelSerializer):
                   "email",
                   "first_name",
                   "last_name",
+                  'password'
                   )
+        extra_kwargs = {
+                'password': {'write_only': True}
+        }
+    
+    def create(self, validated_data):
+        user = User.objects.create_user(**validated_data)
+        return user
