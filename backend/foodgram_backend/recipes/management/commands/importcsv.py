@@ -1,37 +1,27 @@
-import os
 import csv
-import sys
-
+from os.path import dirname, join, normcase
 from django.conf import settings
 from django.core.management.base import BaseCommand
+from django.db.utils import IntegrityError
 
 from recipes.models import Ingredient
-from users.models import User
-from django.shortcuts import get_object_or_404
 
-
-def read_csv(name):
-    reader = csv.DictReader(open(
-        os.path.join(os.path.dirname(settings.BASE_DIR), '/data/', name),
-        'r', encoding='utf-8'), delimiter=',')
-    return reader
+CSV_FILE = join(
+    dirname(dirname(settings.BASE_DIR)),
+    normcase('data/ingredients.csv')
+    )
 
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
-
-        # # Category Data input
-        # for row in read_csv('ingredients.csv'):
-        #     sys.stdout.write(str(row))
-        #     category = Category(
-        #         id=row['id'],
-        #         name=row['name'],
-        #         slug=row['slug']
-        #     )
-        #     category.save()
-
-        for row in read_csv:
-            _, created = Ingredient.objects.get_or_create(
-                name=row[0],
-                measurement_unit=row[1],
-                )
+        print(CSV_FILE)
+        with open(CSV_FILE, 'r', newline='', encoding='utf-8') as csvfile:
+            fieldnames = ['name', 'measurement_unit']
+            reader = csv.DictReader(csvfile, fieldnames=fieldnames)
+            for row in reader:
+                try:
+                    ingredient = Ingredient(**row)
+                    print(ingredient)
+                    ingredient.save()
+                except IntegrityError as e:
+                    print(e)
