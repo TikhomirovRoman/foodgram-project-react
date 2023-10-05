@@ -27,17 +27,30 @@ class Tag (models.Model):
 class Recipe(models.Model):
     name = models.CharField(max_length=200)
     author = models.ForeignKey(User, on_delete=models.CASCADE)
-    ingredients = models.ManyToManyField(Ingredient,
-                                         through='IngredientInRecipe')
     image = models.ImageField(upload_to='recipes/images/',
                               null=True,
                               default=None)
-    tag = models.ForeignKey(Tag, on_delete=models.SET_DEFAULT, default=None)
+    tags = models.ManyToManyField(Tag)
     text = models.TextField()
-    cooking_time = models.IntegerField(max_length=3)
+    cooking_time = models.IntegerField()
 
 
 class IngredientInRecipe(models.Model):
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
-    ingredient = models.ForeignKey(Ingredient, on_delete=models.RESTRICT)
+    recipe = models.ForeignKey(Recipe,
+                               on_delete=models.CASCADE,
+                               related_name='ingredients')
+    ingredient = models.ForeignKey(Ingredient,
+                                   on_delete=models.RESTRICT,
+                                   related_name='recipes')
     amount = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+
+
+class Subscription(models.Model):
+    follower = models.ForeignKey(User,
+                                 on_delete=models.CASCADE,
+                                 related_name='subscriptions')
+    following = models.ForeignKey(User,
+                                  on_delete=models.CASCADE,
+                                  related_name='subscribers')
+    class Meta:
+        unique_together = ('follower', 'following',)

@@ -134,10 +134,14 @@ CSRF_TRUSTED_ORIGINS = ["http://backend", "http://127.0.0.1:9000"]
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny', 
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
 
     'DEFAULT_AUTHENTICATION_CLASSES': [
        'rest_framework.authentication.TokenAuthentication',
     ]
+}
+
+DJOSER = {
+    
 }
