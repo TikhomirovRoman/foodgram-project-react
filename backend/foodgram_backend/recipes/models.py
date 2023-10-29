@@ -26,7 +26,9 @@ class Tag (models.Model):
 
 class Recipe(models.Model):
     name = models.CharField(max_length=200)
-    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    author = models.ForeignKey(User,
+                               on_delete=models.CASCADE,
+                               related_name='recipes')
     image = models.ImageField(upload_to='recipes/images/',
                               null=True,
                               default=None)
@@ -43,14 +45,3 @@ class IngredientInRecipe(models.Model):
                                    on_delete=models.RESTRICT,
                                    related_name='recipes')
     amount = models.PositiveIntegerField(validators=[MinValueValidator(1)])
-
-
-class Subscription(models.Model):
-    follower = models.ForeignKey(User,
-                                 on_delete=models.CASCADE,
-                                 related_name='subscriptions')
-    following = models.ForeignKey(User,
-                                  on_delete=models.CASCADE,
-                                  related_name='subscribers')
-    class Meta:
-        unique_together = ('follower', 'following',)

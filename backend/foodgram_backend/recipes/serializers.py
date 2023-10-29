@@ -50,24 +50,25 @@ class IngredientInRecipeSerializer(serializers.ModelSerializer):
 
 
 class RecipeSerializer(serializers.ModelSerializer):
-    author = AuthorSerializer()
-    ingredients = IngredientInRecipeSerializer(many=True, read_only=True)
+    # author = AuthorSerializer()
+    # ingredients = IngredientInRecipeSerializer(many=True, read_only=True)
     
     class Meta:
         model = Recipe
-        fields = '__all__'
+        fields = ('id', 'name', 'image', 'cooking_time')
         depth = 0
 
 
 class RecipeCreateSerializer(serializers.ModelSerializer):
-    author = AuthorSerializer()
+    # author = AuthorSerializer()
     ingredients = IngredientInRecipeSerializer(many=True,
                                                read_only=False,
                                                required=True)
 
     class Meta:
         model = Recipe
-        fields = '__all__'
+        # fields = '__all__'
+        exclude = ('author',)
         depth: 0
 
     def create(self, validated_data):
@@ -82,7 +83,6 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         new_ingredients = validated_data.pop('ingredients')
         new_tags = validated_data.pop('tags')
-        author = validated_data.pop('author')
         recipe = super().update(instance, validated_data)
         recipe.tags.set(new_tags)
         old_ingredients_list = [i for i in recipe.ingredients.all()]

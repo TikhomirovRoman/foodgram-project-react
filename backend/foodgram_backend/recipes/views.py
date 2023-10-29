@@ -1,12 +1,15 @@
 from typing import Any
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404
+from django.http import HttpResponse
 from rest_framework import filters
 from rest_framework import viewsets
-from rest_framework import permissions
+from rest_framework import permissions, status
 from rest_framework.decorators import action
+from rest_framework.response import Response
+import json
 
 from .permissions import AuthorOrReadOnly, ReadOnly
-from .models import Ingredient, Recipe, Subscription,Tag
+from .models import Ingredient, Recipe, Tag
 from .serializers import (
     IngredientSerializer,
     RecipeSerializer,
@@ -33,21 +36,65 @@ class RecipeViewSet(viewsets.ModelViewSet):
     permission_classes = [AuthorOrReadOnly, ]
     serializer_class = RecipeCreateSerializer
 
-
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
     def get_permissions(self):
-        if self.action == 'retrieve':
-            return (ReadOnly(),)
+        if self.action in ('favorite', 'shopping_cart'):
+            return (permissions.IsAuthenticated(),)
         return super().get_permissions()
+    
+    def get_serializer(self, *args, **kwargs):
+        if self.action in ('favorite', 'shopping_cart'):
+            return RecipeSerializer(*args, **kwargs)
+        return super().get_serializer(*args, **kwargs)
+
+    @action(detail=True, methods=['POST', 'DELETE'])
+    def favorite(self, request, *args, **kwargs):
+        user = request.user
+        recipe = get_object_or_404(Recipe, pk=kwargs['pk'])
+        if request.method == 'POST':
+            if recipe in user.favorite_recipes.all():
+                content = {'error': 'этот рецепт уже в избранных'}
+                return Response(content, status=status.HTTP_400_BAD_REQUEST)
+            user.favorite_recipes.add(recipe)
+            return Response(self.retrieve(request, *args, **kwargs).data,
+                            status=status.HTTP_201_CREATED)
+        elif request.method == 'DELETE':
+            if recipe not in user.favorite_recipes.all():
+                content = {'error': 'в вашем избранном не найден указанный рецепт'}
+                return Response(content, status=status.HTTP_400_BAD_REQUEST)
+            user.favorite_recipes.remove(recipe)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=['POST', 'DELETE'])
+    def shopping_cart(self, request, *args, **kwargs):
+        user = request.user
+        recipe = get_object_or_404(Recipe, pk=kwargs['pk'])
+        if request.method == 'POST':
+            user.shopping_cart.add(recipe)
+            return Response(
+                self.retrieve(request, *args, **kwargs).data,
+                status=status.HTTP_201_CREATED
+            )
+        elif request.method == 'DELETE':
+            user.shopping_cart.remove(recipe)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False, methods=['GET'])
+    def download_shopping_cart(self, request, *args, **kwargs):
+        user = request.user
+        shopping_list = {}
+        for recipe in user.shopping_cart.all():
+            for ingredient in recipe.ingredients.all():
+                old_amount = shopping_list.get(ingredient.ingredient.name, 0)
+                shopping_list[ingredient.ingredient.name] = old_amount + ingredient.amount
+        content = json.dumps(shopping_list, ensure_ascii=False)
+        response =  HttpResponse(content, content_type='text/plain')
+        response['Content-Disposition'] = 'attachment; filename={0}'.format('filename.txt')
+        return response
 
 
 class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()
-    # permission_classes = [permissions.AllowAny, ]
     serializer_class = TagSerializer
-
-
-class SubcriptionsViewSet(viewsets.ModelViewSet):
-    queryset = Subscription.objects.all()
