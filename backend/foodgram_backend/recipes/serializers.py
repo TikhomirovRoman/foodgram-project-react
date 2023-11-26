@@ -2,6 +2,8 @@ from rest_framework import serializers
 from .models import Ingredient, IngredientInRecipe, Recipe, Tag
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+import base64
+from django.core.files.base import ContentFile
 
 
 class IngredientSerializer(serializers.ModelSerializer):
@@ -49,27 +51,34 @@ class IngredientInRecipeSerializer(serializers.ModelSerializer):
         fields = ('ingredient', 'amount')
 
 
+
+class Base64ImageField(serializers.ImageField):
+    def to_internal_value(self, data):
+        if isinstance(data, str) and data.startswith('data:image'):
+            format, imgstr = data.split(';base64,')  
+            ext = format.split('/')[-1]  
+            data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
+        return super().to_internal_value(data)
+
+
 class RecipeSerializer(serializers.ModelSerializer):
-    # author = AuthorSerializer()
-    # ingredients = IngredientInRecipeSerializer(many=True, read_only=True)
     
     class Meta:
         model = Recipe
         fields = ('id', 'name', 'image', 'cooking_time')
-        depth = 0
+        depth = 1
 
 
 class RecipeCreateSerializer(serializers.ModelSerializer):
-    # author = AuthorSerializer()
     ingredients = IngredientInRecipeSerializer(many=True,
                                                read_only=False,
                                                required=True)
-
+    image = Base64ImageField(required=False, allow_null=True)
+    author = AuthorSerializer()
     class Meta:
         model = Recipe
-        # fields = '__all__'
-        exclude = ('author',)
-        depth: 0
+        fields = ['id', 'ingredients', 'image', 'name', 'text', 'cooking_time', 'tags', 'author']
+        depth = 1
 
     def create(self, validated_data):
         ingredients_data = validated_data.pop('ingredients')

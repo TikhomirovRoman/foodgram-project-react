@@ -69,6 +69,8 @@ class UserViewSet(ModelViewSet):
 
     @action(detail=False, methods=['GET'])
     def me(self, request, *args, **kwargs):
+        print('USERS/ME')
+        print(request.user.id)
         self.kwargs['pk'] = request.user.id
         return self.retrieve(self, request, *args, **kwargs)
 

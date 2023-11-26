@@ -6,6 +6,7 @@ from rest_framework import viewsets
 from rest_framework import permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from users.models import User
 import json
 
 from .permissions import AuthorOrReadOnly, ReadOnly
@@ -29,15 +30,32 @@ class IngredientViewset(viewsets.ModelViewSet):
     serializer_class = IngredientSerializer
     filter_backends = [IngredientsSearchFilter]
     search_fields = ['^name', ]
+    pagination_class = None
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     permission_classes = [AuthorOrReadOnly, ]
     serializer_class = RecipeCreateSerializer
+    filterset_fields = ['author']
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+    
+    def get_queryset(self):
+        queryset =  super().get_queryset()
+        print(self.request.query_params)
+        if self.request.query_params.get('is_favorited'):
+            queryset = queryset.filter(favored_by = self.request.user)
+        if self.request.query_params.get('is_in_shopping_cart'):
+            queryset = queryset.filter(shopping_carts = self.request.user)
+
+        tags = self.request.query_params.getlist('tags')
+        if tags:
+            queryset = queryset.filter(tags__slug__in=tags)
+            
+        return queryset
+    
 
     def get_permissions(self):
         if self.action in ('favorite', 'shopping_cart'):
@@ -98,3 +116,4 @@ class RecipeViewSet(viewsets.ModelViewSet):
 class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+    pagination_class = None

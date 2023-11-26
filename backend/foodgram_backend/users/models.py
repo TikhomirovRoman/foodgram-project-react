@@ -13,9 +13,18 @@ class User(AbstractUser):
     email = models.EmailField(verbose_name='email address', unique=True)
     first_name = models.CharField(max_length=32)
     last_name = models.CharField(max_length=64)
-    subscriptions = models.ManyToManyField('self', symmetrical=False)
-    favorite_recipes = models.ManyToManyField(to='recipes.Recipe', related_name='favored_by')
-    shopping_cart = models.ManyToManyField(to='recipes.Recipe', related_name='shopping_carts')
+    subscriptions = models.ManyToManyField(
+        'self',
+        symmetrical=False,
+        blank=True)
+    favorite_recipes = models.ManyToManyField(
+        to='recipes.Recipe',
+        related_name='favored_by',
+        blank=True)
+    shopping_cart = models.ManyToManyField(
+        to='recipes.Recipe',
+        related_name='shopping_carts',
+        blank=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']

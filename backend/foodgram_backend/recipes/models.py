@@ -24,6 +24,8 @@ class Tag (models.Model):
     slug = models.SlugField(max_length=200)
 
 
+
+
 class Recipe(models.Model):
     name = models.CharField(max_length=200)
     author = models.ForeignKey(User,
@@ -32,7 +34,7 @@ class Recipe(models.Model):
     image = models.ImageField(upload_to='recipes/images/',
                               null=True,
                               default=None)
-    tags = models.ManyToManyField(Tag)
+    tags = models.ManyToManyField(Tag, related_name='recipes')
     text = models.TextField()
     cooking_time = models.IntegerField()
 
