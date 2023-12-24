@@ -51,9 +51,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(shopping_carts = self.request.user)
 
         tags = self.request.query_params.getlist('tags')
+        print("TAGS: ", tags)
+        print("QUERYSET BEFORE FILTER: ", queryset)
+        print()
         if tags:
-            queryset = queryset.filter(tags__slug__in=tags)
-            
+            queryset = queryset.filter(tags__slug__in=tags).distinct()
+        print("QUERYSET AFTER FILTER: ", queryset)
         return queryset
     
 
@@ -113,7 +116,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return response
 
 
-class TagViewSet(viewsets.ModelViewSet):
+class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     pagination_class = None

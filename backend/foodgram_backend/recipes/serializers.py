@@ -1,10 +1,12 @@
 from rest_framework import serializers
 from .models import Ingredient, IngredientInRecipe, Recipe, Tag
+from api.serializers import UserSerializer
+
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 import base64
 from django.core.files.base import ContentFile
-
+User = get_user_model()
 
 class IngredientSerializer(serializers.ModelSerializer):
     class Meta:
@@ -17,23 +19,8 @@ class TagSerializer(serializers.ModelSerializer):
         model = Tag
         fields = '__all__'
 
-
-class AuthorSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = get_user_model()
-        fields = ['id']
-
     def to_internal_value(self, data):
-        return {'author': get_user_model().objects.get(pk=data)}
-
-    def to_representation(self, instance):
-        return {
-            'id': instance.id,
-            'email': instance.email,
-            'username': instance.username,
-            'first_name': instance.first_name,
-            'last_name': instance.last_name
-        }
+        return Tag.objects.get(pk=data)
 
 
 class IngredientInRecipeSerializer(serializers.ModelSerializer):
@@ -74,10 +61,13 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
                                                read_only=False,
                                                required=True)
     image = Base64ImageField(required=False, allow_null=True)
-    author = AuthorSerializer()
+    tags = TagSerializer(many=True, read_only=False)
+    author = UserSerializer(many=False, read_only=True)
+    is_favorited = serializers.SerializerMethodField(
+        method_name='check_favorites', required=False)
     class Meta:
         model = Recipe
-        fields = ['id', 'ingredients', 'image', 'name', 'text', 'cooking_time', 'tags', 'author']
+        fields = ['id', 'ingredients', 'image', 'name', 'text', 'cooking_time', 'tags', 'author', 'is_favorited']
         depth = 1
 
     def create(self, validated_data):
@@ -112,4 +102,23 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
     def to_internal_value(self, data):
         for ingredient in data['ingredients']:
             ingredient['ingredient'] = ingredient.pop('id')
-        return super().to_internal_value(data)
+        result = super().to_internal_value(data)
+        return result
+
+    def check_favorites(self, obj):
+        user_id = self.context['request'].user.id
+        try:
+            user = User.objects.get(pk=user_id)
+        except ObjectDoesNotExist:
+            return False
+        return obj in user.favorite_recipes.all()
+
+class RecipesMinifiedSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Recipe
+        fields = (
+            'id',
+            'name',
+            'image',
+            'cooking_time'
+        )
