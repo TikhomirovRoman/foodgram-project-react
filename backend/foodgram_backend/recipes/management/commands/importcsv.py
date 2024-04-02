@@ -21,7 +21,6 @@ class Command(BaseCommand):
             for row in reader:
                 try:
                     ingredient = Ingredient(**row)
-                    print(ingredient)
                     ingredient.save()
                 except IntegrityError as e:
                     print(e)

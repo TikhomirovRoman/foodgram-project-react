@@ -1,7 +1,9 @@
 FROM python:3.9
+
 WORKDIR /app
+RUN pip install gunicorn==20.1.0
 COPY ./requirements.txt .
 RUN pip install -r requirements.txt --no-cache-dir
-COPY /foodgram_backend/ .
-# ENTRYPOINT ["tail", "-f", "/dev/null"]
-CMD ["python", "./manage.py", "runserver", "0:8000"] 
+# RUN python foodgram_backend/manage.py collectstatic
+COPY ./foodgram_backend .
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "foodgram_backend.wsgi"]

@@ -15,6 +15,7 @@ from djoser.views import UserViewSet
 from djoser.conf import settings
 from api.serializers import UserWithRecipesSerializer, UserCreateSerializer
 
+from .permissions import PasswordPermission
 
 User = get_user_model()
 
@@ -26,14 +27,15 @@ class UserViewSet(ModelViewSet):
     lookup_field = 'pk'
     filter_backends = [SearchFilter]
     search_fields = ['username', 'email']
-    http_method_names = ['get', 'post', 'patch', 'delete']
+    http_method_names = ['get', 'post', 'delete']
 
     def get_permissions(self):
         if self.action == 'create':
             return (permissions.AllowAny(),)
         if self.action == 'destroy':
-            print('permissions DESTROY')
             return (permissions.IsAdminUser(),)
+        if self.action == 'set_password':
+            return (permissions.IsAuthenticated(), PasswordPermission(),)
         if self.action in ('retrieve', 'subscriptions'):
             return (permissions.IsAuthenticated(),)
         return super().get_permissions()
@@ -44,7 +46,7 @@ class UserViewSet(ModelViewSet):
         user = request.user
         author = get_object_or_404(User, pk=kwargs['pk'])
         if user == author:
-            content = {'error': 'нельзя подписываться на себя. стыдно'}
+            content = {'error': 'нельзя подписываться на себя'}
             return Response(content, status=status.HTTP_400_BAD_REQUEST)
         if request.method == 'POST':
             if author in user.subscriptions.all():
@@ -69,10 +71,15 @@ class UserViewSet(ModelViewSet):
 
     @action(detail=False, methods=['GET'])
     def me(self, request, *args, **kwargs):
-        print('USERS/ME')
-        print(request.user.id)
         self.kwargs['pk'] = request.user.id
         return self.retrieve(self, request, *args, **kwargs)
+
+    @action(detail=False, methods=['POST'])
+    def set_password(self, request, *args, **kwargs):
+        user = request.user
+        user.set_password(request.data['new_password'])
+        user.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_serializer(self, *args, **kwargs):
         if self.action == 'subscriptions':

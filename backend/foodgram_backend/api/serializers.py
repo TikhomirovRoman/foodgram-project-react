@@ -1,12 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from recipes.models import Recipe
-from recipes.serializers import RecipesMinifiedSerializer
 from django.core.exceptions import ObjectDoesNotExist
 User = get_user_model()
-
-
-
 
 class UserSerializer(serializers.ModelSerializer):
     is_subscribed = serializers.SerializerMethodField(
@@ -32,6 +28,15 @@ class UserSerializer(serializers.ModelSerializer):
             return False
         return obj in user.subscriptions.all()
 
+class RecipesMinifiedSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Recipe
+        fields = (
+            'id',
+            'name',
+            'image',
+            'cooking_time'
+        )
 
 class UserWithRecipesSerializer(serializers.ModelSerializer):
     is_subscribed = serializers.SerializerMethodField(

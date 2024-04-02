@@ -44,19 +44,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         queryset =  super().get_queryset()
-        print(self.request.query_params)
         if self.request.query_params.get('is_favorited'):
             queryset = queryset.filter(favored_by = self.request.user)
         if self.request.query_params.get('is_in_shopping_cart'):
+            print('is_in_shopping_cart')
+            print(self.request.user.id)
             queryset = queryset.filter(shopping_carts = self.request.user)
 
         tags = self.request.query_params.getlist('tags')
-        print("TAGS: ", tags)
-        print("QUERYSET BEFORE FILTER: ", queryset)
-        print()
         if tags:
             queryset = queryset.filter(tags__slug__in=tags).distinct()
-        print("QUERYSET AFTER FILTER: ", queryset)
         return queryset
     
 
@@ -108,11 +105,23 @@ class RecipeViewSet(viewsets.ModelViewSet):
         shopping_list = {}
         for recipe in user.shopping_cart.all():
             for ingredient in recipe.ingredients.all():
-                old_amount = shopping_list.get(ingredient.ingredient.name, 0)
-                shopping_list[ingredient.ingredient.name] = old_amount + ingredient.amount
-        content = json.dumps(shopping_list, ensure_ascii=False)
+                if ingredient.ingredient.name in shopping_list:
+                    shopping_list[ingredient.ingredient.name]['total'] += ingredient.amount 
+                else:
+                    shopping_list[ingredient.ingredient.name] = {'total': ingredient.amount}
+                    shopping_list[ingredient.ingredient.name]['measure'] = ingredient.ingredient.measurement_unit
+                    shopping_list[ingredient.ingredient.name]['recipes']=[]
+                shopping_list[ingredient.ingredient.name]['recipes'].append([recipe.name, ingredient.amount])
+        content = ''
+        for ingredient, details in shopping_list.items():
+            content += f'• {ingredient}:'
+            content += '.'*(80-len(ingredient+str(details["total"])+details["measure"]))
+            content += f'{details["total"]} {details["measure"]}.\n'
+            for recipe in details['recipes']:
+                content += f'\t({recipe[0]}: {recipe[1]})\n'
+
         response =  HttpResponse(content, content_type='text/plain')
-        response['Content-Disposition'] = 'attachment; filename={0}'.format('filename.txt')
+        response['Content-Disposition'] = 'attachment; filename={0}'.format('shopping_cart.txt')
         return response
 
 

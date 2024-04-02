@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from .models import Ingredient, IngredientInRecipe, Recipe, Tag
 from api.serializers import UserSerializer
-
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 import base64
@@ -65,9 +64,12 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
     author = UserSerializer(many=False, read_only=True)
     is_favorited = serializers.SerializerMethodField(
         method_name='check_favorites', required=False)
+    is_in_shopping_cart = serializers.SerializerMethodField(
+        method_name='check_in_shopping_cart', required=False)
+    
     class Meta:
         model = Recipe
-        fields = ['id', 'ingredients', 'image', 'name', 'text', 'cooking_time', 'tags', 'author', 'is_favorited']
+        fields = ['id', 'ingredients', 'image', 'name', 'text', 'cooking_time', 'tags', 'author', 'is_favorited', 'is_in_shopping_cart']
         depth = 1
 
     def create(self, validated_data):
@@ -113,12 +115,12 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             return False
         return obj in user.favorite_recipes.all()
 
-class RecipesMinifiedSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Recipe
-        fields = (
-            'id',
-            'name',
-            'image',
-            'cooking_time'
-        )
+    def check_in_shopping_cart(self, obj):
+        user_id = self.context['request'].user.id
+        try:
+            user = User.objects.get(pk=user_id)
+        except ObjectDoesNotExist:
+            return False
+        return obj in user.shopping_cart.all()
+
+

@@ -23,6 +23,8 @@ class Tag (models.Model):
     color = models.CharField(max_length=7, validators=[validate_hex_color])
     slug = models.SlugField(max_length=200)
 
+    def __str__(self):
+        return self.name
 
 
 
@@ -37,6 +39,12 @@ class Recipe(models.Model):
     tags = models.ManyToManyField(Tag, related_name='recipes')
     text = models.TextField()
     cooking_time = models.IntegerField()
+    @property
+    def favored_counter(self):
+        return self.favored_by.count()
+
+    def __str__(self) -> str:
+        return self.name
 
 
 class IngredientInRecipe(models.Model):
