@@ -76,7 +76,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             if recipe not in user.favorite_recipes.all():
                 content = {
                     'error': 'в вашем избранном не найден указанный рецепт'
-                    }
+                }
                 return Response(content, status=status.HTTP_400_BAD_REQUEST)
             user.favorite_recipes.remove(recipe)
             return Response(status=status.HTTP_204_NO_CONTENT)
@@ -116,8 +116,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
         content = ''
         for ingredient, details in shopping_list.items():
             content += f'• {ingredient}:'
-            content += '.'*(80-len(ingredient+str(details["total"])
-                                   + details["measure"]))
+            content += '.' * (80 - len(
+                ingredient + str(details["total"])
+                + details["measure"]))
             content += f'{details["total"]} {details["measure"]}.\n'
             for recipe in details['recipes']:
                 content += f'\t({recipe[0]}: {recipe[1]})\n'

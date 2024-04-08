@@ -15,7 +15,7 @@ services:
     image: toprihlop/foodgram_backend
     env_file: ./.env
     volumes:
-      - static:/app/backend_static/
+      - static:/app/backend_static
       - ./data/:/data/
       - media:/app/media/
     depends_on:

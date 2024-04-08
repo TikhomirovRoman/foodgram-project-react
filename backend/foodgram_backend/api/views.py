@@ -99,7 +99,7 @@ class UserViewSet(ModelViewSet):
                 *args,
                 **kwargs,
                 context={'user_id': self.request.user.id}
-                )
+            )
 
     def get_queryset(self):
         if self.action == 'subscriptions':

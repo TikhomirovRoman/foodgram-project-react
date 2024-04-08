@@ -7,7 +7,7 @@ class User(AbstractUser):
 
     username = models.CharField(
         max_length=150,
-        validators=[RegexValidator(regex=r"^[\w.@+-]+\Z"),],
+        validators=[RegexValidator(regex=r"^[\w.@+-]+\Z"), ],
         unique=True
     )
     email = models.EmailField(verbose_name='email address', unique=True)

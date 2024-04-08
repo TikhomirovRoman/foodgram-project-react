@@ -9,7 +9,7 @@ from recipes.models import Ingredient
 CSV_FILE = join(
     dirname(dirname(settings.BASE_DIR)),
     normcase('data/ingredients.csv')
-    )
+)
 
 
 class Command(BaseCommand):

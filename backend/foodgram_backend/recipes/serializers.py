@@ -31,7 +31,7 @@ class IngredientInRecipeSerializer(serializers.ModelSerializer):
             'name': instance.ingredient.name,
             'measurement_unit': instance.ingredient.measurement_unit,
             'amount': instance.amount,
-            }
+        }
 
     class Meta:
         model = IngredientInRecipe
