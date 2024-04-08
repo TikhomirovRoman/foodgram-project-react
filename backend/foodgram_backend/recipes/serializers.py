@@ -2,10 +2,11 @@ from rest_framework import serializers
 from .models import Ingredient, IngredientInRecipe, Recipe, Tag
 from api.serializers import UserSerializer
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError, ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist
 import base64
 from django.core.files.base import ContentFile
 User = get_user_model()
+
 
 class IngredientSerializer(serializers.ModelSerializer):
     class Meta:
@@ -35,7 +36,6 @@ class IngredientInRecipeSerializer(serializers.ModelSerializer):
     class Meta:
         model = IngredientInRecipe
         fields = ('ingredient', 'amount')
-
 
 
 class Base64ImageField(serializers.ImageField):
@@ -69,7 +69,9 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Recipe
-        fields = ['id', 'ingredients', 'image', 'name', 'text', 'cooking_time', 'tags', 'author', 'is_favorited', 'is_in_shopping_cart']
+        fields = ['id', 'ingredients', 'image', 'name', 'text',
+                  'cooking_time', 'tags', 'author', 'is_favorited',
+                  'is_in_shopping_cart']
         depth = 1
 
     def create(self, validated_data):
@@ -96,7 +98,8 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
                     ingredient_in_recipe.amount = new_ingredient['amount']
                     ingredient_in_recipe.save()
             else:
-                IngredientInRecipe.objects.create(**new_ingredient, recipe=recipe)
+                IngredientInRecipe.objects.create(**new_ingredient,
+                                                  recipe=recipe)
         for ingredient in old_ingredients_list:
             ingredient.delete()
         return recipe

@@ -27,7 +27,6 @@ class Tag (models.Model):
         return self.name
 
 
-
 class Recipe(models.Model):
     name = models.CharField(max_length=200)
     author = models.ForeignKey(User,
@@ -39,6 +38,7 @@ class Recipe(models.Model):
     tags = models.ManyToManyField(Tag, related_name='recipes')
     text = models.TextField()
     cooking_time = models.IntegerField()
+
     @property
     def favored_counter(self):
         return self.favored_by.count()

@@ -102,22 +102,29 @@ class RecipeViewSet(viewsets.ModelViewSet):
         for recipe in user.shopping_cart.all():
             for ingredient in recipe.ingredients.all():
                 if ingredient.ingredient.name in shopping_list:
-                    shopping_list[ingredient.ingredient.name]['total'] += ingredient.amount
+                    shopping_list[ingredient.ingredient.name]['total']\
+                        += ingredient.amount
                 else:
-                    shopping_list[ingredient.ingredient.name] = {'total': ingredient.amount}
-                    shopping_list[ingredient.ingredient.name]['measure'] = ingredient.ingredient.measurement_unit
-                    shopping_list[ingredient.ingredient.name]['recipes'] = []
-                shopping_list[ingredient.ingredient.name]['recipes'].append([recipe.name, ingredient.amount])
+                    shopping_list[ingredient.ingredient.name]\
+                        = {'total': ingredient.amount}
+                    shopping_list[ingredient.ingredient.name]['measure']\
+                        = ingredient.ingredient.measurement_unit
+                    shopping_list[ingredient.ingredient.name]['recipes']\
+                        = []
+                shopping_list[ingredient.ingredient.name]['recipes'].\
+                    append([recipe.name, ingredient.amount])
         content = ''
         for ingredient, details in shopping_list.items():
             content += f'• {ingredient}:'
-            content += '.'*(80-len(ingredient+str(details["total"])+details["measure"]))
+            content += '.'*(80-len(ingredient+str(details["total"])
+                                   + details["measure"]))
             content += f'{details["total"]} {details["measure"]}.\n'
             for recipe in details['recipes']:
                 content += f'\t({recipe[0]}: {recipe[1]})\n'
 
         response = HttpResponse(content, content_type='text/plain')
-        response['Content-Disposition'] = 'attachment; filename={0}'.format('shopping_cart.txt')
+        response['Content-Disposition'] = 'attachment; filename={0}'.\
+            format('shopping_cart.txt')
         return response
 
 
