@@ -3,6 +3,7 @@ from rest_framework import permissions
 
 class AuthorOrReadOnly(permissions.BasePermission):
     message = 'AuthorOrReadOnly violeted'
+
     def has_permission(self, request, view):
         return (
                 request.method in permissions.SAFE_METHODS

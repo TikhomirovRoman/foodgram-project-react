@@ -1,5 +1,4 @@
-from django.db import IntegrityError
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status
 from rest_framework.filters import SearchFilter
 from rest_framework.decorators import action
@@ -9,10 +8,6 @@ from rest_framework.response import Response
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth import get_user_model
 from .serializers import UserSerializer
-from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.authtoken.models import Token
-from djoser.views import UserViewSet
-from djoser.conf import settings
 from api.serializers import UserWithRecipesSerializer, UserCreateSerializer
 
 from .permissions import PasswordPermission
@@ -59,7 +54,8 @@ class UserViewSet(ModelViewSet):
             try:
                 if author not in user.subscriptions.all():
                     content = {'error': 'подписка не найдена'}
-                    return Response(content, status=status.HTTP_400_BAD_REQUEST)
+                    return Response(content,
+                                    status=status.HTTP_400_BAD_REQUEST)
                 user.subscriptions.remove(author)
             except Exception as e:
                 print(e)

@@ -1,10 +1,12 @@
 # praktikum_new_diplom
 
-сбилдить backend
-dockeimage build -t backend-image --file backend/Dockerfile .
+ адрес сервера:
+ https://thelastone.zapto.org/recipes
+ 158.160.66.193
 
-запустить контейнер backend
-docker run --rm --name backend -p 7000:8000 --network foodNET backend-image
+ учетка суперюзера:
+ root@mail.ru / password
 
-запустить контейнер nginx
-docker container run --rm --name gateway -v foodgram-volume:/staticfiles/ --network foodNET -p 80:80 gateway
+ запустить оркестр:
+ docker compose -f docker-compose.production.yml up
+ 

@@ -14,7 +14,6 @@ CSV_FILE = join(
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
-        print(CSV_FILE)
         with open(CSV_FILE, 'r', newline='', encoding='utf-8') as csvfile:
             fieldnames = ['name', 'measurement_unit']
             reader = csv.DictReader(csvfile, fieldnames=fieldnames)

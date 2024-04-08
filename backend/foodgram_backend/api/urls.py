@@ -1,7 +1,6 @@
 from django.urls import path, include
 from rest_framework import routers
-# from rest_framework.authtoken import views
-from .views import UserViewSet  #CustomTokenCreateView , CustomAuthToken
+from .views import UserViewSet
 from recipes.views import IngredientViewset, RecipeViewSet, TagViewSet
 
 

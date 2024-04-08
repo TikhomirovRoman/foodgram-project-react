@@ -1,4 +1,3 @@
-from typing import Any
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 from rest_framework import filters
@@ -6,10 +5,8 @@ from rest_framework import viewsets
 from rest_framework import permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from users.models import User
-import json
 
-from .permissions import AuthorOrReadOnly, ReadOnly
+from .permissions import AuthorOrReadOnly
 from .models import Ingredient, Recipe, Tag
 from .serializers import (
     IngredientSerializer,
@@ -41,27 +38,24 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
-    
+
     def get_queryset(self):
-        queryset =  super().get_queryset()
+        queryset = super().get_queryset()
         if self.request.query_params.get('is_favorited'):
-            queryset = queryset.filter(favored_by = self.request.user)
+            queryset = queryset.filter(favored_by=self.request.user)
         if self.request.query_params.get('is_in_shopping_cart'):
-            print('is_in_shopping_cart')
-            print(self.request.user.id)
-            queryset = queryset.filter(shopping_carts = self.request.user)
+            queryset = queryset.filter(shopping_carts=self.request.user)
 
         tags = self.request.query_params.getlist('tags')
         if tags:
             queryset = queryset.filter(tags__slug__in=tags).distinct()
         return queryset
-    
 
     def get_permissions(self):
         if self.action in ('favorite', 'shopping_cart'):
             return (permissions.IsAuthenticated(),)
         return super().get_permissions()
-    
+
     def get_serializer(self, *args, **kwargs):
         if self.action in ('favorite', 'shopping_cart'):
             return RecipeSerializer(*args, **kwargs)
@@ -80,7 +74,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
                             status=status.HTTP_201_CREATED)
         elif request.method == 'DELETE':
             if recipe not in user.favorite_recipes.all():
-                content = {'error': 'в вашем избранном не найден указанный рецепт'}
+                content = {
+                    'error': 'в вашем избранном не найден указанный рецепт'
+                    }
                 return Response(content, status=status.HTTP_400_BAD_REQUEST)
             user.favorite_recipes.remove(recipe)
             return Response(status=status.HTTP_204_NO_CONTENT)
@@ -106,11 +102,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
         for recipe in user.shopping_cart.all():
             for ingredient in recipe.ingredients.all():
                 if ingredient.ingredient.name in shopping_list:
-                    shopping_list[ingredient.ingredient.name]['total'] += ingredient.amount 
+                    shopping_list[ingredient.ingredient.name]['total'] += ingredient.amount
                 else:
                     shopping_list[ingredient.ingredient.name] = {'total': ingredient.amount}
                     shopping_list[ingredient.ingredient.name]['measure'] = ingredient.ingredient.measurement_unit
-                    shopping_list[ingredient.ingredient.name]['recipes']=[]
+                    shopping_list[ingredient.ingredient.name]['recipes'] = []
                 shopping_list[ingredient.ingredient.name]['recipes'].append([recipe.name, ingredient.amount])
         content = ''
         for ingredient, details in shopping_list.items():
@@ -120,7 +116,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             for recipe in details['recipes']:
                 content += f'\t({recipe[0]}: {recipe[1]})\n'
 
-        response =  HttpResponse(content, content_type='text/plain')
+        response = HttpResponse(content, content_type='text/plain')
         response['Content-Disposition'] = 'attachment; filename={0}'.format('shopping_cart.txt')
         return response
 

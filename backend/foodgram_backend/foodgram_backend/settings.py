@@ -26,7 +26,8 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ["127.0.0.1", "backend", "158.160.66.193", "thelastone.zapto.org"]
+ALLOWED_HOSTS = ["127.0.0.1", "backend",
+                 "158.160.66.193", "thelastone.zapto.org"]
 
 
 # Application definition
@@ -45,7 +46,6 @@ INSTALLED_APPS = [
     'recipes',
     'users',
     'api',
-    
 ]
 
 MIDDLEWARE = [
@@ -83,7 +83,7 @@ WSGI_APPLICATION = 'foodgram_backend.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 
-if DEBUG : 
+if DEBUG:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -149,7 +149,10 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CSRF_TRUSTED_ORIGINS = ["http://backend", "http://127.0.0.1", "http://127.0.0.1:9000", "https://thelastone.zapto.org"]
+CSRF_TRUSTED_ORIGINS = ["http://backend",
+                        "http://127.0.0.1",
+                        "http://127.0.0.1:9000",
+                        "https://thelastone.zapto.org"]
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
@@ -159,7 +162,10 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
        'rest_framework.authentication.TokenAuthentication',
     ],
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'DEFAULT_PAGINATION_CLASS':
+        'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 6,
-    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend'
+        ],
 }

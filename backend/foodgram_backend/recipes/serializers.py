@@ -41,14 +41,14 @@ class IngredientInRecipeSerializer(serializers.ModelSerializer):
 class Base64ImageField(serializers.ImageField):
     def to_internal_value(self, data):
         if isinstance(data, str) and data.startswith('data:image'):
-            format, imgstr = data.split(';base64,')  
-            ext = format.split('/')[-1]  
+            format, imgstr = data.split(';base64,')
+            ext = format.split('/')[-1]
             data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
         return super().to_internal_value(data)
 
 
 class RecipeSerializer(serializers.ModelSerializer):
-    
+
     class Meta:
         model = Recipe
         fields = ('id', 'name', 'image', 'cooking_time')
@@ -66,7 +66,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         method_name='check_favorites', required=False)
     is_in_shopping_cart = serializers.SerializerMethodField(
         method_name='check_in_shopping_cart', required=False)
-    
+
     class Meta:
         model = Recipe
         fields = ['id', 'ingredients', 'image', 'name', 'text', 'cooking_time', 'tags', 'author', 'is_favorited', 'is_in_shopping_cart']
@@ -122,5 +122,3 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         except ObjectDoesNotExist:
             return False
         return obj in user.shopping_cart.all()
-
-

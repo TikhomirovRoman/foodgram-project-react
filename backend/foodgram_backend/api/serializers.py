@@ -4,6 +4,7 @@ from recipes.models import Recipe
 from django.core.exceptions import ObjectDoesNotExist
 User = get_user_model()
 
+
 class UserSerializer(serializers.ModelSerializer):
     is_subscribed = serializers.SerializerMethodField(
         method_name='check_subscription')
@@ -18,7 +19,6 @@ class UserSerializer(serializers.ModelSerializer):
             "last_name",
             'is_subscribed',
         )
-       
 
     def check_subscription(self, obj):
         user_id = self.context.get('user_id')
@@ -27,6 +27,7 @@ class UserSerializer(serializers.ModelSerializer):
         except ObjectDoesNotExist:
             return False
         return obj in user.subscriptions.all()
+
 
 class RecipesMinifiedSerializer(serializers.ModelSerializer):
     class Meta:
@@ -37,6 +38,7 @@ class RecipesMinifiedSerializer(serializers.ModelSerializer):
             'image',
             'cooking_time'
         )
+
 
 class UserWithRecipesSerializer(serializers.ModelSerializer):
     is_subscribed = serializers.SerializerMethodField(
