@@ -26,7 +26,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ["127.0.0.1","backend",]
+ALLOWED_HOSTS = ["127.0.0.1", "backend", "158.160.66.193", "thelastone.zapto.org"]
 
 
 # Application definition
@@ -83,7 +83,7 @@ WSGI_APPLICATION = 'foodgram_backend.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 
-if DEBUG: 
+if DEBUG : 
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -149,7 +149,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CSRF_TRUSTED_ORIGINS = ["http://backend", "http://127.0.0.1", "http://127.0.0.1:9000"]
+CSRF_TRUSTED_ORIGINS = ["http://backend", "http://127.0.0.1", "http://127.0.0.1:9000", "https://thelastone.zapto.org"]
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [

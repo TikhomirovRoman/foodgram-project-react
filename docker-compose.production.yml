@@ -14,7 +14,6 @@ services:
   backend:
     image: toprihlop/foodgram_backend
     env_file: ./.env
-    # command: cp -r /app/collected_static/. /app/backend_static/
     volumes:
       - static:/app/backend_static/
       - ./data/:/data/
