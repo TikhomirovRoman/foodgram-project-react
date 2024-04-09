@@ -16,9 +16,8 @@ services:
       context: ../backend
       dockerfile: Dockerfile
     env_file: ../.env
-    # command: cp -r /app/collectedstatic/. /app/backend_static/
     volumes:
-      - static:/app/backend_static/
+      - static:/app/static/
       - ../data/:/data/
       - media:/app/media/
     depends_on:

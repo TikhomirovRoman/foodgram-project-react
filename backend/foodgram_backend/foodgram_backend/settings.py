@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = (os.getenv("FOODGRAM_DEBUG_MODE") == 'True')
 
 ALLOWED_HOSTS = ["127.0.0.1", "backend",
                  "158.160.66.193", "thelastone.zapto.org"]

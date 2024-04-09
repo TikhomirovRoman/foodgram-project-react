@@ -4,7 +4,7 @@ from django.conf import settings
 import django.core.validators
 from django.db import migrations, models
 import django.db.models.deletion
-import recipes.validators
+import backend.foodgram_backend.api.validators
 
 
 class Migration(migrations.Migration):
@@ -40,7 +40,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(max_length=200, unique=True)),
-                ('color', models.CharField(max_length=7, validators=[recipes.validators.validate_hex_color])),
+                ('color', models.CharField(max_length=7, validators=[backend.foodgram_backend.api.validators.validate_hex_color])),
                 ('slug', models.SlugField(max_length=200)),
             ],
         ),
