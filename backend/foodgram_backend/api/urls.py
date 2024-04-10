@@ -9,7 +9,6 @@ router.register('ingredients', IngredientViewset, basename='ingredients')
 router.register('tags', TagViewSet, basename='tags')
 
 urlpatterns = [
-    # path('auth/token/login/', CustomTokenCreateView.as_view(), name="login"),
     path('', include(router.urls)),
     path('auth/', include('djoser.urls.authtoken')),
 
