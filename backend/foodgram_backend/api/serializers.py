@@ -1,14 +1,26 @@
-from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from django.core.files.base import ContentFile
-from recipes.models import Recipe, Ingredient, IngredientInRecipe, Tag
-import base64
+from rest_framework import serializers
 
-from django.core.exceptions import ObjectDoesNotExist
+from recipes.models import Ingredient, IngredientInRecipe, Recipe, Tag
+from .fields import Base64ImageField
+
+
 User = get_user_model()
 
 
-class UserSerializer(serializers.ModelSerializer):
+class UserSubscribedMixin:
+    def check_subscription(self, author):
+        user_id = self.context.get('user_id')
+        if not bool(user_id):
+            return False
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return False
+        return user.subscriptions.filter(pk=author.pk).exists()
+
+
+class UserSerializer(serializers.ModelSerializer, UserSubscribedMixin):
     is_subscribed = serializers.SerializerMethodField(
         method_name='check_subscription')
 
@@ -23,14 +35,6 @@ class UserSerializer(serializers.ModelSerializer):
             'is_subscribed',
         )
 
-    def check_subscription(self, obj):
-        user_id = self.context.get('user_id')
-        try:
-            user = User.objects.get(pk=user_id)
-        except ObjectDoesNotExist:
-            return False
-        return obj in user.subscriptions.all()
-
 
 class RecipesMinifiedSerializer(serializers.ModelSerializer):
     class Meta:
@@ -43,7 +47,8 @@ class RecipesMinifiedSerializer(serializers.ModelSerializer):
         )
 
 
-class UserWithRecipesSerializer(serializers.ModelSerializer):
+class UserWithRecipesSerializer(serializers.ModelSerializer,
+                                UserSubscribedMixin):
     is_subscribed = serializers.SerializerMethodField(
         method_name='check_subscription')
     recipes_count = serializers.SerializerMethodField(
@@ -61,14 +66,6 @@ class UserWithRecipesSerializer(serializers.ModelSerializer):
                   'recipes',
                   'recipes_count'
                   )
-
-    def check_subscription(self, obj):
-        user_id = self.context.get('user_id')
-        try:
-            user = User.objects.get(pk=user_id)
-        except ObjectDoesNotExist:
-            return False
-        return obj in user.subscriptions.all()
 
     def count_recipes(self, obj):
         return obj.recipes.count()
@@ -126,15 +123,6 @@ class IngredientInRecipeSerializer(serializers.ModelSerializer):
         fields = ('ingredient', 'amount')
 
 
-class Base64ImageField(serializers.ImageField):
-    def to_internal_value(self, data):
-        if isinstance(data, str) and data.startswith('data:image'):
-            format, imgstr = data.split(';base64,')
-            ext = format.split('/')[-1]
-            data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
-        return super().to_internal_value(data)
-
-
 class RecipeSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -166,8 +154,11 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         ingredients_data = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
         recipe = Recipe.objects.create(**validated_data)
-        for ingredient_item in ingredients_data:
-            IngredientInRecipe.objects.create(**ingredient_item, recipe=recipe)
+        for ingredient in ingredients_data:
+            ingredient['recipe'] = recipe
+        ingredients = [IngredientInRecipe(**data) for data in ingredients_data]
+        print(ingredients)
+        IngredientInRecipe.objects.bulk_create(ingredients)
         recipe.tags.set(tags)
         return recipe
 
@@ -193,23 +184,29 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         return recipe
 
     def to_internal_value(self, data):
+        print(data['ingredients'])
         for ingredient in data['ingredients']:
             ingredient['ingredient'] = ingredient.pop('id')
+        print(data['ingredients'])
         result = super().to_internal_value(data)
         return result
 
     def check_favorites(self, obj):
         user_id = self.context['request'].user.id
+        if not bool(user_id):
+            return False
         try:
             user = User.objects.get(pk=user_id)
-        except ObjectDoesNotExist:
+        except User.DoesNotExist:
             return False
         return obj in user.favorite_recipes.all()
 
     def check_in_shopping_cart(self, obj):
         user_id = self.context['request'].user.id
+        if not bool(user_id):
+            return False
         try:
             user = User.objects.get(pk=user_id)
-        except ObjectDoesNotExist:
+        except User.DoesNotExist:
             return False
         return obj in user.shopping_cart.all()

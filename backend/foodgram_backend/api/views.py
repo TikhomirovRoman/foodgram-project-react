@@ -1,26 +1,20 @@
-from django.shortcuts import get_object_or_404
+from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
 from django.http import HttpResponse
-
-from rest_framework import permissions, status
-from rest_framework import filters
+from django.shortcuts import get_object_or_404
+from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
-from rest_framework import viewsets
-from rest_framework.viewsets import ModelViewSet
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
-from django.contrib.auth.tokens import default_token_generator
-from django.contrib.auth import get_user_model
-from .serializers import UserSerializer
-from api.serializers import UserWithRecipesSerializer, UserCreateSerializer
+from rest_framework.viewsets import ModelViewSet
 
-from .permissions import PasswordPermission, AuthorOrReadOnly
-from recipes.models import Recipe, Ingredient, Tag
-from .serializers import (
-    IngredientSerializer,
-    RecipeSerializer,
-    RecipeCreateSerializer,
-    TagSerializer
-)
+from recipes.models import Ingredient, Recipe, Tag
+from .filters import IngredientsSearchFilter
+from .permissions import AuthorOrReadOnly, PasswordPermission
+from .serializers import (IngredientSerializer, RecipeCreateSerializer,
+                          RecipeSerializer, TagSerializer,
+                          UserCreateSerializer, UserSerializer,
+                          UserWithRecipesSerializer)
 
 User = get_user_model()
 
@@ -47,29 +41,28 @@ class UserViewSet(ModelViewSet):
 
     @action(detail=True, methods=['POST', 'DELETE'])
     def subscribe(self, request, *args, **kwargs):
-        User = get_user_model()
         user = request.user
         author = get_object_or_404(User, pk=kwargs['pk'])
         if user == author:
             content = {'error': 'нельзя подписываться на себя'}
             return Response(content, status=status.HTTP_400_BAD_REQUEST)
         if request.method == 'POST':
-            if author in user.subscriptions.all():
+            if user.subscriptions.filter(pk=author.pk).exists():
                 content = {'error': 'вы уже подписаны на этого автора'}
                 return Response(content, status=status.HTTP_400_BAD_REQUEST)
             user.subscriptions.add(author)
             return Response(self.retrieve(request, *args, **kwargs).data,
                             status=status.HTTP_201_CREATED)
-        elif request.method == 'DELETE':
-            try:
-                if author not in user.subscriptions.all():
-                    content = {'error': 'подписка не найдена'}
-                    return Response(content,
-                                    status=status.HTTP_400_BAD_REQUEST)
-                user.subscriptions.remove(author)
-            except Exception as e:
-                print(e)
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        try:
+            if not user.subscriptions.filter(pk=author.pk).exists():
+                content = {'error': 'подписка не найдена'}
+                return Response(content,
+                                status=status.HTTP_400_BAD_REQUEST)
+            user.subscriptions.remove(author)
+        except Exception:
+            return Response(content,
+                            status=status.HTTP_400_BAD_REQUEST)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=['GET'])
     def subscriptions(self, request, *args, **kwargs):
@@ -104,22 +97,16 @@ class UserViewSet(ModelViewSet):
         if self.action == 'create':
             serializer = UserCreateSerializer(*args, **kwargs)
             return serializer
-        else:
-            return UserSerializer(
-                *args,
-                **kwargs,
-                context={'user_id': self.request.user.id}
-            )
+        return UserSerializer(
+            *args,
+            **kwargs,
+            context={'user_id': self.request.user.id}
+        )
 
     def get_queryset(self):
         if self.action == 'subscriptions':
-            queryset = self.request.user.subscriptions.all()
-            return queryset
+            return self.request.user.subscriptions.all()
         return User.objects.all()
-
-
-class IngredientsSearchFilter(filters.SearchFilter):
-    search_param = 'name'
 
 
 class IngredientViewset(viewsets.ModelViewSet):
@@ -168,20 +155,19 @@ class RecipeViewSet(viewsets.ModelViewSet):
         user = request.user
         recipe = get_object_or_404(Recipe, pk=kwargs['pk'])
         if request.method == 'POST':
-            if recipe in user.favorite_recipes.all():
+            if user.favorite_recipes.filter(pk=recipe.pk).exists():
                 content = {'error': 'этот рецепт уже в избранных'}
                 return Response(content, status=status.HTTP_400_BAD_REQUEST)
             user.favorite_recipes.add(recipe)
             return Response(self.retrieve(request, *args, **kwargs).data,
                             status=status.HTTP_201_CREATED)
-        elif request.method == 'DELETE':
-            if recipe not in user.favorite_recipes.all():
-                content = {
-                    'error': 'в вашем избранном не найден указанный рецепт'
-                }
-                return Response(content, status=status.HTTP_400_BAD_REQUEST)
-            user.favorite_recipes.remove(recipe)
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        if not user.favorite_recipes.filter(pk=recipe.pk).exists():
+            content = {
+                'error': 'в вашем избранном не найден указанный рецепт'
+            }
+            return Response(content, status=status.HTTP_400_BAD_REQUEST)
+        user.favorite_recipes.remove(recipe)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['POST', 'DELETE'])
     def shopping_cart(self, request, *args, **kwargs):
@@ -193,9 +179,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 self.retrieve(request, *args, **kwargs).data,
                 status=status.HTTP_201_CREATED
             )
-        elif request.method == 'DELETE':
-            user.shopping_cart.remove(recipe)
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        user.shopping_cart.remove(recipe)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=['GET'])
     def download_shopping_cart(self, request, *args, **kwargs):

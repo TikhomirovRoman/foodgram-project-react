@@ -5,9 +5,7 @@ class PasswordPermission(permissions.BasePermission):
     message = "неверный пароль"
 
     def has_permission(self, request, view):
-        if request.user.check_password(request.data['current_password']):
-            return True
-        return False
+        return request.user.check_password(request.data['current_password'])
 
 
 class AuthorOrReadOnly(permissions.BasePermission):
