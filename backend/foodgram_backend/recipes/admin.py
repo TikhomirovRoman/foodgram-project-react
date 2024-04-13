@@ -1,6 +1,7 @@
 from django.contrib import admin
-from .models import Ingredient, Recipe, Tag, IngredientInRecipe
 from django.contrib.auth.models import Group
+
+from .models import Ingredient, IngredientInRecipe, Recipe, Tag
 
 
 class RecipeAdmin(admin.ModelAdmin):

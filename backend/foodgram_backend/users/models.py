@@ -15,13 +15,16 @@ class User(AbstractUser):
     last_name = models.CharField(max_length=64)
     subscriptions = models.ManyToManyField(
         'self',
+        verbose_name='подписки',
         symmetrical=False,
         blank=True)
     favorite_recipes = models.ManyToManyField(
+        verbose_name='изранное',
         to='recipes.Recipe',
         related_name='favored_by',
         blank=True)
     shopping_cart = models.ManyToManyField(
+        verbose_name='список покупок',
         to='recipes.Recipe',
         related_name='shopping_carts',
         blank=True)

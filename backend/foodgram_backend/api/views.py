@@ -151,52 +151,62 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return RecipeSerializer(*args, **kwargs)
         return super().get_serializer(*args, **kwargs)
 
-    @action(detail=True, methods=['POST', 'DELETE'])
-    def favorite(self, request, *args, **kwargs):
-        user = request.user
+    def add_romove_related(self, request, related_models,
+                           related_name, *args, **kwargs):
         recipe = get_object_or_404(Recipe, pk=kwargs['pk'])
         if request.method == 'POST':
-            if user.favorite_recipes.filter(pk=recipe.pk).exists():
-                content = {'error': 'этот рецепт уже в избранных'}
+            if related_models.filter(pk=recipe.pk).exists():
+                content = {
+                    'error':
+                    f"этот рецепт уже добавлен в '{related_name}' ранее"}
                 return Response(content, status=status.HTTP_400_BAD_REQUEST)
-            user.favorite_recipes.add(recipe)
-            return Response(self.retrieve(request, *args, **kwargs).data,
-                            status=status.HTTP_201_CREATED)
-        if not user.favorite_recipes.filter(pk=recipe.pk).exists():
-            content = {
-                'error': 'в вашем избранном не найден указанный рецепт'
-            }
-            return Response(content, status=status.HTTP_400_BAD_REQUEST)
-        user.favorite_recipes.remove(recipe)
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-    @action(detail=True, methods=['POST', 'DELETE'])
-    def shopping_cart(self, request, *args, **kwargs):
-        user = request.user
-        recipe = get_object_or_404(Recipe, pk=kwargs['pk'])
-        if request.method == 'POST':
-            user.shopping_cart.add(recipe)
+            related_models.add(recipe)
             return Response(
                 self.retrieve(request, *args, **kwargs).data,
                 status=status.HTTP_201_CREATED
             )
-        user.shopping_cart.remove(recipe)
+        if not related_models.filter(pk=recipe.pk).exists():
+            content = {
+                'error': f"указанный рецепт не найден в '{related_name}'"
+            }
+            return Response(content, status=status.HTTP_400_BAD_REQUEST)
+        related_models.remove(recipe)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=['POST', 'DELETE'])
+    def favorite(self, request, *args, **kwargs):
+        response = self.add_romove_related(
+            request,
+            related_models=request.user.favorite_recipes,
+            related_name='избранное',
+            *args,
+            **kwargs)
+        return response
+
+    @action(detail=True, methods=['POST', 'DELETE'])
+    def shopping_cart(self, request, *args, **kwargs):
+        response = self.add_romove_related(
+            request,
+            related_models=request.user.shopping_cart,
+            related_name='список покупок',
+            *args,
+            **kwargs)
+        return response
 
     @action(detail=False, methods=['GET'])
     def download_shopping_cart(self, request, *args, **kwargs):
         user = request.user
         total = IngredientInRecipe.objects\
             .filter(recipe__in=user.shopping_cart.all())\
-            .values('ingredient')\
+            .values('ingredient', 'ingredient__name',
+                    'ingredient__measurement_unit')\
             .annotate(total=Sum('amount'))
         content = ''
         for item in total.all():
-            ingredient = Ingredient.objects.get(pk=item["ingredient"])
-            content += f'• {ingredient.name}'
-            content += f'({ingredient.measurement_unit}):'
+            content += f'• {item["ingredient__name"]}'
+            content += f'({item["ingredient__measurement_unit"]}):'
             content += ('.' * (80 - len(
-                ingredient.name + ingredient.measurement_unit
+                item["ingredient__name"] + item["ingredient__measurement_unit"]
                 + str(item['total']))))
             content += f'{item["total"]}\n'
 

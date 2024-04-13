@@ -155,37 +155,27 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
                   'is_in_shopping_cart']
         depth = 1
 
-    def create(self, validated_data):
+    def save_recipe(self, validated_data, instance=None):
         ingredients_data = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
-        recipe = Recipe.objects.create(**validated_data)
-        for ingredient in ingredients_data:
-            ingredient['recipe'] = recipe
-        ingredients = [IngredientInRecipe(**data) for data in ingredients_data]
+        if instance:
+            recipe = super().update(instance, validated_data)
+            recipe.ingredients.all().delete()
+        else:
+            recipe = Recipe.objects.create(**validated_data)
+
+        ingredients = [IngredientInRecipe(**data, recipe=recipe)
+                       for data in ingredients_data]
         IngredientInRecipe.objects.bulk_create(ingredients)
         recipe.tags.set(tags)
         return recipe
 
+    def create(self, validated_data):
+        return self.save_recipe(validated_data)
+
     def update(self, instance, validated_data):
-        new_ingredients = validated_data.pop('ingredients')
-        new_tags = validated_data.pop('tags')
-        recipe = super().update(instance, validated_data)
-        recipe.tags.set(new_tags)
-        old_ingredients_list = [i for i in recipe.ingredients.all()]
-        for new_ingredient in new_ingredients:
-            ingredient_in_recipe = recipe.ingredients.filter(
-                ingredient=new_ingredient['ingredient']).first()
-            if ingredient_in_recipe:
-                old_ingredients_list.remove(ingredient_in_recipe)
-                if new_ingredient['amount'] != ingredient_in_recipe.amount:
-                    ingredient_in_recipe.amount = new_ingredient['amount']
-                    ingredient_in_recipe.save()
-            else:
-                IngredientInRecipe.objects.create(**new_ingredient,
-                                                  recipe=recipe)
-        for ingredient in old_ingredients_list:
-            ingredient.delete()
-        return recipe
+        return self.save_recipe(validated_data,
+                                instance)
 
     def check_favorites(self, obj):
         user_id = self.context['request'].user.id

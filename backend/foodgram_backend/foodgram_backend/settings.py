@@ -8,8 +8,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 DEBUG = (os.getenv("FOODGRAM_DEBUG_MODE") == 'True')
-if os.getenv("DJANGO_ALLOWED_HOSTS"):
-    ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS').split(',')
+
+if os.getenv("FOODGRAM_ALLOWED_HOSTS"):
+    ALLOWED_HOSTS = os.getenv('FOODGRAM_ALLOWED_HOSTS').split(',')
 else:
     ALLOWED_HOSTS = []
 
@@ -84,20 +85,20 @@ AUTH_USER_MODEL = 'users.User'
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.\
-        UserAttributeSimilarityValidator',
+        'NAME': 'django.contrib.auth.password_validation'
+        '.UserAttributeSimilarityValidator',
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.\
-        MinimumLengthValidator',
+        'NAME': 'django.contrib.auth.password_validation'
+        '.MinimumLengthValidator',
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.\
-        CommonPasswordValidator',
+        'NAME': 'django.contrib.auth.password_validation'
+        '.CommonPasswordValidator',
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.\
-        NumericPasswordValidator',
+        'NAME': 'django.contrib.auth.password_validation'
+        '.NumericPasswordValidator',
     },
 ]
 
@@ -120,10 +121,11 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CSRF_TRUSTED_ORIGINS = ["http://backend",
-                        "http://127.0.0.1",
-                        "http://127.0.0.1:9000",
-                        "https://thelastone.zapto.org"]
+if os.getenv('FOODGRAM_CSRF_TRUSTED_ORIGINS'):
+    CSRF_TRUSTED_ORIGINS = os.getenv('FOODGRAM_CSRF_TRUSTED_ORIGINS')\
+        .split(',')
+else:
+    CSRF_TRUSTED_ORIGINS = []
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
