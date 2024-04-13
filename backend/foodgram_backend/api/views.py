@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
+from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, permissions, status, viewsets
@@ -8,7 +9,7 @@ from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from recipes.models import Ingredient, Recipe, Tag
+from recipes.models import Ingredient, IngredientInRecipe, Recipe, Tag
 from .filters import IngredientsSearchFilter
 from .permissions import AuthorOrReadOnly, PasswordPermission
 from .serializers import (IngredientSerializer, RecipeCreateSerializer,
@@ -185,30 +186,19 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['GET'])
     def download_shopping_cart(self, request, *args, **kwargs):
         user = request.user
-        shopping_list = {}
-        for recipe in user.shopping_cart.all():
-            for ingredient in recipe.ingredients.all():
-                if ingredient.ingredient.name in shopping_list:
-                    shopping_list[ingredient.ingredient.name]['total']\
-                        += ingredient.amount
-                else:
-                    shopping_list[ingredient.ingredient.name]\
-                        = {'total': ingredient.amount}
-                    shopping_list[ingredient.ingredient.name]['measure']\
-                        = ingredient.ingredient.measurement_unit
-                    shopping_list[ingredient.ingredient.name]['recipes']\
-                        = []
-                shopping_list[ingredient.ingredient.name]['recipes'].\
-                    append([recipe.name, ingredient.amount])
+        total = IngredientInRecipe.objects\
+            .filter(recipe__in=user.shopping_cart.all())\
+            .values('ingredient')\
+            .annotate(total=Sum('amount'))
         content = ''
-        for ingredient, details in shopping_list.items():
-            content += f'• {ingredient}:'
-            content += '.' * (80 - len(
-                ingredient + str(details["total"])
-                + details["measure"]))
-            content += f'{details["total"]} {details["measure"]}.\n'
-            for recipe in details['recipes']:
-                content += f'\t({recipe[0]}: {recipe[1]})\n'
+        for item in total.all():
+            ingredient = Ingredient.objects.get(pk=item["ingredient"])
+            content += f'• {ingredient.name}'
+            content += f'({ingredient.measurement_unit}):'
+            content += ('.' * (80 - len(
+                ingredient.name + ingredient.measurement_unit
+                + str(item['total']))))
+            content += f'{item["total"]}\n'
 
         response = HttpResponse(content, content_type='text/plain')
         response['Content-Disposition'] = 'attachment; filename={0}'.\

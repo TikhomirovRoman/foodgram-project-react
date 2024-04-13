@@ -104,23 +104,24 @@ class TagSerializer(serializers.ModelSerializer):
         model = Tag
         fields = '__all__'
 
-    def to_internal_value(self, data):
-        return Tag.objects.get(pk=data)
-
 
 class IngredientInRecipeSerializer(serializers.ModelSerializer):
-
-    def to_representation(self, instance):
-        return {
-            'id': instance.ingredient.id,
-            'name': instance.ingredient.name,
-            'measurement_unit': instance.ingredient.measurement_unit,
-            'amount': instance.amount,
-        }
+    id = serializers.PrimaryKeyRelatedField(
+        source='ingredient',
+        queryset=Ingredient.objects.all(),
+        required=True,
+        read_only=False
+    )
+    name = serializers.CharField(
+        source='ingredient.name',
+        required=False)
+    measurement_unit = serializers.CharField(
+        source='ingredient.measurement_unit',
+        required=False)
 
     class Meta:
         model = IngredientInRecipe
-        fields = ('ingredient', 'amount')
+        fields = ('id', 'name', 'measurement_unit', 'amount')
 
 
 class RecipeSerializer(serializers.ModelSerializer):
@@ -136,7 +137,11 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
                                                read_only=False,
                                                required=True)
     image = Base64ImageField(required=False, allow_null=True)
-    tags = TagSerializer(many=True, read_only=False)
+    tags = serializers.PrimaryKeyRelatedField(
+        many=True,
+        required=True,
+        queryset=Tag.objects.all()
+    )
     author = UserSerializer(many=False, read_only=True)
     is_favorited = serializers.SerializerMethodField(
         method_name='check_favorites', required=False)
@@ -157,7 +162,6 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         for ingredient in ingredients_data:
             ingredient['recipe'] = recipe
         ingredients = [IngredientInRecipe(**data) for data in ingredients_data]
-        print(ingredients)
         IngredientInRecipe.objects.bulk_create(ingredients)
         recipe.tags.set(tags)
         return recipe
@@ -183,14 +187,6 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             ingredient.delete()
         return recipe
 
-    def to_internal_value(self, data):
-        print(data['ingredients'])
-        for ingredient in data['ingredients']:
-            ingredient['ingredient'] = ingredient.pop('id')
-        print(data['ingredients'])
-        result = super().to_internal_value(data)
-        return result
-
     def check_favorites(self, obj):
         user_id = self.context['request'].user.id
         if not bool(user_id):
@@ -199,7 +195,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             user = User.objects.get(pk=user_id)
         except User.DoesNotExist:
             return False
-        return obj in user.favorite_recipes.all()
+        return user.favorite_recipes.filter(pk=obj.pk).exists()
 
     def check_in_shopping_cart(self, obj):
         user_id = self.context['request'].user.id
@@ -209,4 +205,4 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             user = User.objects.get(pk=user_id)
         except User.DoesNotExist:
             return False
-        return obj in user.shopping_cart.all()
+        return user.shopping_cart.filter(pk=obj.pk).exists()

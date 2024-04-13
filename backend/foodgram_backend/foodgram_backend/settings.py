@@ -8,11 +8,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 DEBUG = (os.getenv("FOODGRAM_DEBUG_MODE") == 'True')
-if os.getenv("FOODGRAM_DEBUG_MODE"):
+if os.getenv("DJANGO_ALLOWED_HOSTS"):
     ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS').split(',')
 else:
     ALLOWED_HOSTS = []
-
 
 INSTALLED_APPS = [
     'django.contrib.admin',
