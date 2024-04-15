@@ -5,16 +5,16 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from recipes.models import Ingredient, IngredientInRecipe, Recipe, Tag
 from .filters import IngredientsSearchFilter
-from .permissions import AuthorOrReadOnly, PasswordPermission
+from .pagination import CustomPagination
+from .permissions import (StaffOrAuthorOrReadOnly, PasswordPermission)
 from .serializers import (IngredientSerializer, RecipeCreateSerializer,
-                          RecipeSerializer, TagSerializer,
-                          UserCreateSerializer, UserSerializer,
+                          RecipesMinifiedSerializer, RecipeSerializer,
+                          TagSerializer, UserCreateSerializer, UserSerializer,
                           UserWithRecipesSerializer)
 
 User = get_user_model()
@@ -22,7 +22,7 @@ User = get_user_model()
 
 class UserViewSet(ModelViewSet):
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
-    pagination_class = LimitOffsetPagination
+    pagination_class = CustomPagination
     token_generator = default_token_generator
     lookup_field = 'pk'
     filter_backends = [filters.SearchFilter]
@@ -38,6 +38,8 @@ class UserViewSet(ModelViewSet):
             return (permissions.IsAuthenticated(), PasswordPermission(),)
         if self.action in ('retrieve', 'subscriptions'):
             return (permissions.IsAuthenticated(),)
+        if self.action == 'me':
+            return (permissions.IsAuthenticated(),)
         return super().get_permissions()
 
     @action(detail=True, methods=['POST', 'DELETE'])
@@ -52,6 +54,7 @@ class UserViewSet(ModelViewSet):
                 content = {'error': 'вы уже подписаны на этого автора'}
                 return Response(content, status=status.HTTP_400_BAD_REQUEST)
             user.subscriptions.add(author)
+            kwargs.setdefault('context', {'request': request})
             return Response(self.retrieve(request, *args, **kwargs).data,
                             status=status.HTTP_201_CREATED)
         try:
@@ -61,13 +64,15 @@ class UserViewSet(ModelViewSet):
                                 status=status.HTTP_400_BAD_REQUEST)
             user.subscriptions.remove(author)
         except Exception:
-            return Response(content,
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(status=status.HTTP_400_BAD_REQUEST)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=['GET'])
     def subscriptions(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
+        try:
+            return super().list(request, *args, **kwargs)
+        except Exception:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=['GET'])
     def me(self, request, *args, **kwargs):
@@ -76,33 +81,33 @@ class UserViewSet(ModelViewSet):
 
     @action(detail=False, methods=['POST'])
     def set_password(self, request, *args, **kwargs):
-        user = request.user
-        user.set_password(request.data['new_password'])
-        user.save()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        try:
+            user = request.user
+            user.set_password(request.data['new_password'])
+            user.save()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
     def get_serializer(self, *args, **kwargs):
         if self.action == 'subscriptions':
             serializer = UserWithRecipesSerializer(
                 self.get_queryset(),
-                context={'user_id': self.request.user.id},
+                context={'request': self.request},
                 many=True)
             return serializer
         if self.action == 'subscribe':
             serializer = UserWithRecipesSerializer(
                 self.get_object(),
-                context={'user_id': self.request.user.id},
+                context={'request': self.request},
                 many=False
             )
             return serializer
         if self.action == 'create':
             serializer = UserCreateSerializer(*args, **kwargs)
             return serializer
-        return UserSerializer(
-            *args,
-            **kwargs,
-            context={'user_id': self.request.user.id}
-        )
+        kwargs.setdefault('context', {'request': self.request})
+        return UserSerializer(*args,  **kwargs)
 
     def get_queryset(self):
         if self.action == 'subscriptions':
@@ -122,7 +127,8 @@ class IngredientViewset(viewsets.ModelViewSet):
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
-    permission_classes = [AuthorOrReadOnly, ]
+    pagination_class = CustomPagination
+    permission_classes = [StaffOrAuthorOrReadOnly, ]
     serializer_class = RecipeCreateSerializer
     filterset_fields = ['author']
 
@@ -147,7 +153,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
 
     def get_serializer(self, *args, **kwargs):
+        kwargs.setdefault('context', self.get_serializer_context())
         if self.action in ('favorite', 'shopping_cart'):
+            return RecipesMinifiedSerializer(*args, **kwargs)
+        if self.action in ('retrieve', 'list'):
             return RecipeSerializer(*args, **kwargs)
         return super().get_serializer(*args, **kwargs)
 

@@ -8,8 +8,8 @@ class PasswordPermission(permissions.BasePermission):
         return request.user.check_password(request.data['current_password'])
 
 
-class AuthorOrReadOnly(permissions.BasePermission):
-    message = 'AuthorOrReadOnly violeted'
+class StaffOrAuthorOrReadOnly(permissions.BasePermission):
+    message = 'StaffOrAuthorOrReadOnly permission violeted'
 
     def has_permission(self, request, view):
         return (
@@ -22,6 +22,7 @@ class AuthorOrReadOnly(permissions.BasePermission):
         return (
             request.method in permissions.SAFE_METHODS
             or obj.author == request.user
+            or request.user.is_staff
         )
 
 

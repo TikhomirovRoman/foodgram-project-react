@@ -10,21 +10,21 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         user1 = User.objects.create(username='user_1',
                                     email='user_1@mail.testmail',
-                                    first_name='',
-                                    last_name=''
+                                    first_name='Андрей',
+                                    last_name='Макаревич'
                                     )
         user1.set_password('password')
 
         user2 = User.objects.create(username='user_2',
                                     email='user_2@mail.testmail',
-                                    first_name='',
-                                    last_name='')
+                                    first_name='Иван',
+                                    last_name='Ургант')
         user2.set_password('password')
 
         user3 = User.objects.create(username='user_3',
                                     email='user_3@email.testmail',
-                                    first_name='',
-                                    last_name='')
+                                    first_name='Гордон',
+                                    last_name='Рамзи')
         user3.set_password('password')
 
         breakfast_tag = Tag.objects.create(name='завтрак',

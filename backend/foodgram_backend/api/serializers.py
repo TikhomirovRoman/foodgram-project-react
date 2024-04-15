@@ -10,7 +10,7 @@ User = get_user_model()
 
 class UserSubscribedMixin:
     def check_subscription(self, author):
-        user_id = self.context.get('user_id')
+        user_id = self.context['request'].user.id
         if not bool(user_id):
             return False
         try:
@@ -36,24 +36,15 @@ class UserSerializer(serializers.ModelSerializer, UserSubscribedMixin):
         )
 
 
-class RecipesMinifiedSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Recipe
-        fields = (
-            'id',
-            'name',
-            'image',
-            'cooking_time'
-        )
-
-
 class UserWithRecipesSerializer(serializers.ModelSerializer,
                                 UserSubscribedMixin):
     is_subscribed = serializers.SerializerMethodField(
         method_name='check_subscription')
     recipes_count = serializers.SerializerMethodField(
         method_name='count_recipes')
-    recipes = RecipesMinifiedSerializer(many=True, read_only=True)
+    recipes = serializers.SerializerMethodField(
+        method_name='get_recipes'
+    )
 
     class Meta:
         model = User
@@ -69,6 +60,14 @@ class UserWithRecipesSerializer(serializers.ModelSerializer,
 
     def count_recipes(self, obj):
         return obj.recipes.count()
+
+    def get_recipes(self, obj):
+        recipes_limit = self.context['request'].GET.get('recipes_limit', None)
+        if recipes_limit:
+            recipes_limit = int(recipes_limit)
+        queryset = obj.recipes.all()[:recipes_limit]
+        return RecipesMinifiedSerializer(
+            queryset, many=True, read_only=True).data
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
@@ -124,24 +123,24 @@ class IngredientInRecipeSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'measurement_unit', 'amount')
 
 
-class RecipeSerializer(serializers.ModelSerializer):
-
+class RecipesMinifiedSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
-        fields = ('id', 'name', 'image', 'cooking_time')
-        depth = 1
+        fields = (
+            'id',
+            'name',
+            'image',
+            'cooking_time'
+        )
 
 
-class RecipeCreateSerializer(serializers.ModelSerializer):
+class RecipeSerializer(serializers.ModelSerializer):
     ingredients = IngredientInRecipeSerializer(many=True,
                                                read_only=False,
                                                required=True)
     image = Base64ImageField(required=False, allow_null=True)
-    tags = serializers.PrimaryKeyRelatedField(
-        many=True,
-        required=True,
-        queryset=Tag.objects.all()
-    )
+    tags = TagSerializer(many=True,
+                         read_only=True)
     author = UserSerializer(many=False, read_only=True)
     is_favorited = serializers.SerializerMethodField(
         method_name='check_favorites', required=False)
@@ -154,6 +153,34 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
                   'cooking_time', 'tags', 'author', 'is_favorited',
                   'is_in_shopping_cart']
         depth = 1
+
+    def check_favorites(self, obj):
+        user_id = self.context['request'].user.id
+        if not bool(user_id):
+            return False
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return False
+        return user.favorite_recipes.filter(pk=obj.pk).exists()
+
+    def check_in_shopping_cart(self, obj):
+        user_id = self.context['request'].user.id
+        if not bool(user_id):
+            return False
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return False
+        return user.shopping_cart.filter(pk=obj.pk).exists()
+
+
+class RecipeCreateSerializer(RecipeSerializer):
+    tags = serializers.PrimaryKeyRelatedField(
+        many=True,
+        required=True,
+        queryset=Tag.objects.all()
+    )
 
     def save_recipe(self, validated_data, instance=None):
         ingredients_data = validated_data.pop('ingredients')
@@ -176,23 +203,3 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         return self.save_recipe(validated_data,
                                 instance)
-
-    def check_favorites(self, obj):
-        user_id = self.context['request'].user.id
-        if not bool(user_id):
-            return False
-        try:
-            user = User.objects.get(pk=user_id)
-        except User.DoesNotExist:
-            return False
-        return user.favorite_recipes.filter(pk=obj.pk).exists()
-
-    def check_in_shopping_cart(self, obj):
-        user_id = self.context['request'].user.id
-        if not bool(user_id):
-            return False
-        try:
-            user = User.objects.get(pk=user_id)
-        except User.DoesNotExist:
-            return False
-        return user.shopping_cart.filter(pk=obj.pk).exists()
