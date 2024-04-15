@@ -107,7 +107,7 @@ class UserViewSet(ModelViewSet):
             serializer = UserCreateSerializer(*args, **kwargs)
             return serializer
         kwargs.setdefault('context', {'request': self.request})
-        return UserSerializer(*args,  **kwargs)
+        return UserSerializer(*args, **kwargs)
 
     def get_queryset(self):
         if self.action == 'subscriptions':
